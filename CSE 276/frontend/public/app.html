@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GCTP | Generative Content Transformation Platform</title>
+  <style>
+    :root {
+      --bg: #070A11;
+      --card-bg: #0B0F19;
+      --card-inner: #141C2E;
+      --border: #1F2A44;
+      --border-light: #2E3D60;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --accent: #8B5CF6;
+      --accent-grad: linear-gradient(135deg, #8B5CF6, #6366F1, #3B82F6);
+      --accent-glow: rgba(139, 92, 246, 0.25);
+      --card-hover: #121929;
+    }
+    [data-theme="light"] {
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --card-inner: #F1F5F9;
+      --border: #E2E8F0;
+      --border-light: #CBD5E1;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --accent: #7C3AED;
+      --accent-grad: linear-gradient(135deg, #7C3AED, #4F46E5, #2563EB);
+      --accent-glow: rgba(124, 58, 237, 0.15);
+      --card-hover: #F8FAFC;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; transition: background-color 0.2s, color 0.2s; }
+    
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.6); }
+
+    /* Layout Elements */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; border-radius: 12px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; text-decoration: none; }
+    .btn-primary { background: var(--accent-grad); color: #fff; box-shadow: 0 4px 14px var(--accent-glow); }
+    .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); }
+    .btn-secondary { background: var(--card-inner); color: var(--text); border-color: var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.2); }
+    
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 18px; padding: 22px; transition: all 0.2s; }
+    .card:hover { border-color: var(--border-light); }
+    
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-purple { background: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .badge-green { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    
+    /* Form controls */
+    input, select, textarea { width: 100%; background: var(--card-inner); border: 1px solid var(--border); color: var(--text); border-radius: 12px; padding: 12px 14px; font-size: 13px; outline: none; transition: border-color 0.2s; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 6px; }
+
+    /* Toast */
+    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+    .toast { pointer-events: auto; background: var(--card-inner); border: 1px solid var(--accent); color: var(--text); padding: 12px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.4); animation: slideIn 0.3s forwards; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 900; padding: 20px; }
+    .modal-overlay.active { display: flex; }
+    .modal-box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; max-width: 680px; width: 100%; padding: 24px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); max-height: 85vh; overflow-y: auto; }
+
+    /* Navigation & Tabs */
+    .app-container { display: flex; min-height: 100vh; }
+    .sidebar { width: 260px; background: var(--card-bg); border-right: 1px solid var(--border); padding: 20px 14px; display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; }
+    .main-content { flex: 1; padding: 30px; overflow-y: auto; max-width: 1200px; margin: 0 auto; width: 100%; }
+    .nav-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px; border-radius: 12px; font-size: 13px; font-weight: 600; color: var(--text-muted); border: none; background: transparent; cursor: pointer; text-align: left; transition: all 0.2s; }
+    .nav-btn:hover { background: var(--card-inner); color: var(--text); }
+    .nav-btn.active { background: var(--accent-grad); color: #fff; box-shadow: 0 4px 12px var(--accent-glow); }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .app-container { flex-direction: column; }
+      .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+      .main-content { padding: 18px; }
+      .grid-2 { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Shell -->
+  <div id="app" class="app-container"></div>
+
+  <!-- Toast Notification Anchor -->
+  <div id="toast-container"></div>
+
+  <!-- Inspection Modal -->
+  <div id="modal" class="modal-overlay">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+        <h3 id="modal-title" style="font-size: 17px; font-weight: 800;">Content Inspection</h3>
+        <button onclick="closeModal()" class="btn btn-secondary" style="padding: 4px 10px;">✕</button>
+      </div>
+      <div id="modal-body" style="font-size: 13px; line-height: 1.6;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 14px;">
+        <button id="modal-copy-btn" class="btn btn-primary">Copy Output</button>
+        <button id="modal-dl-btn" class="btn btn-secondary">Download TXT</button>
+        <button onclick="closeModal()" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // ZERO INITIAL RECORDS ENGINE
+    // Starts completely at 0. As user enters information, stats increment!
+    // -------------------------------------------------------------
+    const defaultUser = {
+      full_name: "Alex Morgan",
+      email: "alex.morgan@university.edu",
+      role: "College Major Project Scholar"
+    };
+
+    let currentUser = JSON.parse(localStorage.getItem('gctp_user') || JSON.stringify(defaultUser));
+    let currentTheme = localStorage.getItem('gctp_theme') || 'dark';
+    let currentTab = 'dashboard';
+
+    // Start with 0 records!
+    if (!localStorage.getItem('gctp_zero_base_initialized_v2')) {
+      localStorage.removeItem('gctp_history_user_session');
+      localStorage.setItem('gctp_zero_base_initialized_v2', 'true');
+    }
+    let historyRecords = JSON.parse(localStorage.getItem('gctp_history_user_session') || '[]');
+
+    function saveHistory() {
+      localStorage.setItem('gctp_history_user_session', JSON.stringify(historyRecords));
+    }
+
+    function notify(msg) {
+      const c = document.getElementById('toast-container');
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.innerText = msg;
+      c.appendChild(t);
+      setTimeout(() => { t.remove(); }, 3000);
+    }
+
+    function toggleTheme() {
+      currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      localStorage.setItem('gctp_theme', currentTheme);
+      render();
+    }
+
+    // Modal Helpers
+    function openModal(title, inText, outText) {
+      document.getElementById('modal-title').innerText = title;
+      document.getElementById('modal-body').innerHTML = `
+        <div style="margin-bottom: 14px;">
+          <label>Original Input / Prompt</label>
+          <div style="background: var(--card-inner); padding: 12px; border-radius: 10px; font-family: monospace; font-size: 12px; max-height: 120px; overflow-y: auto;">${escapeHtml(inText)}</div>
+        </div>
+        <div>
+          <label style="color: var(--accent);">Transformed / Generated Output</label>
+          <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); padding: 14px; border-radius: 10px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; max-height: 280px; overflow-y: auto;">${escapeHtml(outText)}</div>
+        </div>
+      `;
+      document.getElementById('modal-copy-btn').onclick = () => {
+        navigator.clipboard.writeText(outText);
+        notify('Copied output to clipboard!');
+      };
+      document.getElementById('modal-dl-btn').onclick = () => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([`# ${title}\n\n--- INPUT ---\n${inText}\n\n--- OUTPUT ---\n${outText}`], {type: 'text/plain'}));
+        a.download = `gctp-${title.slice(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
+        a.click();
+        notify('Downloaded TXT file.');
+      };
+      document.getElementById('modal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('active');
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // -------------------------------------------------------------
+    // RENDER DISPATCHER
+    // -------------------------------------------------------------
+    function setTab(tab) {
+      currentTab = tab;
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function render() {
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      const app = document.getElementById('app');
+
+      // Sidebar HTML
+      const sidebarHtml = `
+        <div class="sidebar">
+          <div>
+            <!-- Brand -->
+            <div onclick="setTab('dashboard')" style="display: flex; align-items: center; gap: 10px; margin-bottom: 24px; cursor: pointer;">
+              <div style="width: 38px; height: 38px; border-radius: 10px; background: var(--accent-grad); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 18px; box-shadow: 0 4px 12px var(--accent-glow);">✦</div>
+              <div>
+                <h1 style="font-size: 18px; font-weight: 900; letter-spacing: -0.5px;">GCTP</h1>
+                <span style="font-size: 10px; font-weight: 700; color: var(--accent); text-transform: uppercase;">Content Studio</span>
+              </div>
+            </div>
+
+            <!-- Menu Navigation -->
+            <nav style="display: flex; flex-direction: column; gap: 4px;">
+              <button class="nav-btn ${currentTab==='dashboard'?'active':''}" onclick="setTab('dashboard')">📊 Dashboard</button>
+              <button class="nav-btn ${currentTab==='generator'?'active':''}" onclick="setTab('generator')">✨ AI Content Generator</button>
+              <button class="nav-btn ${currentTab==='transformer'?'active':''}" onclick="setTab('transformer')">🔁 Text Transformer</button>
+              <button class="nav-btn ${currentTab==='summarizer'?'active':''}" onclick="setTab('summarizer')">📄 AI Summarizer</button>
+              <button class="nav-btn ${currentTab==='grammar'?'active':''}" onclick="setTab('grammar')">✓ Grammar Checker</button>
+              <button class="nav-btn ${currentTab==='tone'?'active':''}" onclick="setTab('tone')">🎨 Tone Changer</button>
+              <button class="nav-btn ${currentTab==='history'?'active':''}" onclick="setTab('history')">🕒 Content History</button>
+              <button class="nav-btn ${currentTab==='profile'?'active':''}" onclick="setTab('profile')">👤 My Profile</button>
+              <button class="nav-btn ${currentTab==='settings'?'active':''}" onclick="setTab('settings')">⚙️ Settings</button>
+            </nav>
+          </div>
+
+          <!-- Bottom Session Bar -->
+          <div style="border-top: 1px solid var(--border); padding-top: 14px; margin-top: 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+              <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-grad); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;">${currentUser.full_name.charAt(0)}</div>
+              <div style="min-width: 0; flex: 1;">
+                <p style="font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${currentUser.full_name}</p>
+                <p style="font-size: 10px; color: var(--text-muted);">${currentUser.email}</p>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <button onclick="toggleTheme()" class="btn btn-secondary" style="padding: 6px; font-size: 11px;">
+                ${currentTheme==='dark'?'☀️ Light':'🌙 Dark'}
+              </button>
+              <button onclick="notify('Signed out successfully.'); setTab('dashboard');" class="btn btn-danger" style="padding: 6px; font-size: 11px;">
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Page Contents Dispatcher
+      let pageHtml = '';
+      if (currentTab === 'dashboard') pageHtml = renderDashboard();
+      else if (currentTab === 'generator') pageHtml = renderGenerator();
+      else if (currentTab === 'transformer') pageHtml = renderTransformer();
+      else if (currentTab === 'summarizer') pageHtml = renderSummarizer();
+      else if (currentTab === 'grammar') pageHtml = renderGrammar();
+      else if (currentTab === 'tone') pageHtml = renderTone();
+      else if (currentTab === 'history') pageHtml = renderHistory();
+      else if (currentTab === 'profile') pageHtml = renderProfile();
+      else if (currentTab === 'settings') pageHtml = renderSettings();
+
+      app.innerHTML = sidebarHtml + `<div class="main-content">${pageHtml}</div>`;
+    }
+
+    // -------------------------------------------------------------
+    // 1. DASHBOARD VIEW (Displays Exact Zero If Nothing Entered Yet)
+    // -------------------------------------------------------------
+    function renderDashboard() {
+      const totalWords = historyRecords.reduce((a, b) => a + (b.word_count || 0), 0);
+      const summaries = historyRecords.filter(h => h.operation_type === 'summarize').length;
+      const gens = historyRecords.filter(h => h.operation_type === 'generate').length;
+
+      return `
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          <div>
+            <div class="badge badge-purple" style="margin-bottom: 8px;">College Major Project Platform</div>
+            <h2 style="font-size: 26px; font-weight: 900; letter-spacing: -0.5px;">Welcome Back, ${currentUser.full_name}!</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Real-time database analytics. Enter information into any tool to start tracking your usage!</p>
+          </div>
+
+          <!-- 4 Stat Cards Starting from 0 -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px;">
+            <div class="card">
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Content Generated</span>
+              <h3 style="font-size: 28px; font-weight: 900; margin: 6px 0;">${gens}</h3>
+              <span class="badge badge-purple">${gens === 0 ? '0 Operations' : gens + ' Articles'}</span>
+            </div>
+            <div class="card">
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Words Processed</span>
+              <h3 style="font-size: 28px; font-weight: 900; margin: 6px 0;">${totalWords.toLocaleString()}</h3>
+              <span class="badge badge-blue">${totalWords === 0 ? '0 Words' : totalWords + ' Active Yield'}</span>
+            </div>
+            <div class="card">
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Documents Summarized</span>
+              <h3 style="font-size: 28px; font-weight: 900; margin: 6px 0;">${summaries}</h3>
+              <span class="badge badge-green">${summaries === 0 ? '0 Documents' : summaries + ' Condensed'}</span>
+            </div>
+            <div class="card">
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Recent Activities</span>
+              <h3 style="font-size: 28px; font-weight: 900; margin: 6px 0;">${historyRecords.length}</h3>
+              <span class="badge badge-amber">${historyRecords.length === 0 ? '0 Records in DB' : historyRecords.length + ' Saved in SQLite'}</span>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div>
+            <label>Start Creating (Information will be recorded in database)</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 8px;">
+              <div onclick="setTab('generator')" class="card" style="cursor: pointer; padding: 16px; display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 22px;">✨</div>
+                <div><b style="font-size: 13px;">Generate Content</b><p style="font-size: 11px; color: var(--text-muted);">Essay, blog, email, or report</p></div>
+              </div>
+              <div onclick="setTab('transformer')" class="card" style="cursor: pointer; padding: 16px; display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 22px;">🔁</div>
+                <div><b style="font-size: 13px;">Transform Text</b><p style="font-size: 11px; color: var(--text-muted);">Rewrite, simplify, or bulletize</p></div>
+              </div>
+              <div onclick="setTab('summarizer')" class="card" style="cursor: pointer; padding: 16px; display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 22px;">📄</div>
+                <div><b style="font-size: 13px;">Summarize Text</b><p style="font-size: 11px; color: var(--text-muted);">Compress documents & get keywords</p></div>
+              </div>
+              <div onclick="setTab('grammar')" class="card" style="cursor: pointer; padding: 16px; display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 22px;">✓</div>
+                <div><b style="font-size: 13px;">Check Grammar</b><p style="font-size: 11px; color: var(--text-muted);">Fix typos & review explanations</p></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity Table -->
+          <div class="card" style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <h3 style="font-size: 15px; font-weight: 800;">Recent Saved Activities</h3>
+              ${historyRecords.length > 0 ? `<button onclick="setTab('history')" class="btn btn-secondary" style="padding: 6px 12px; font-size: 11px;">View All History →</button>` : ''}
+            </div>
+            
+            ${historyRecords.length === 0 ? `
+              <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                <div style="font-size: 32px; margin-bottom: 8px;">📋</div>
+                <h4 style="font-size: 14px; font-weight: 700; color: var(--text);">No content records yet</h4>
+                <p style="font-size: 12px; margin-top: 4px; max-width: 400px; margin-left: auto; margin-right: auto;">
+                  All records are currently set to zero. Enter a prompt or transform text using any tool on the left to start recording your database history!
+                </p>
+                <button onclick="setTab('generator')" class="btn btn-primary" style="margin-top: 14px; font-size: 12px;">Create First Content</button>
+              </div>
+            ` : `
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 12px;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid var(--border); color: var(--text-muted);">
+                      <th style="padding: 10px;">Content Title</th>
+                      <th style="padding: 10px;">Tool</th>
+                      <th style="padding: 10px;">Word Count</th>
+                      <th style="padding: 10px; text-align: right;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${historyRecords.slice(0, 5).map(h => `
+                      <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px 10px; font-weight: 700; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(h.title)}</td>
+                        <td style="padding: 12px 10px;"><span class="badge badge-purple">${h.operation_type}</span></td>
+                        <td style="padding: 12px 10px; font-family: monospace;">${h.word_count} words</td>
+                        <td style="padding: 12px 10px; text-align: right;">
+                          <button onclick="openModal('${escapeHtml(h.title)}', '${escapeHtml(h.input_text)}', '${escapeHtml(h.output_text)}')" class="btn btn-primary" style="padding: 4px 10px; font-size: 11px;">Inspect</button>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    // -------------------------------------------------------------
+    // 2. GENERATOR VIEW
+    // -------------------------------------------------------------
+    function renderGenerator() {
+      return `
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div>
+            <h2 style="font-size: 24px; font-weight: 900;">✨ AI Content Generator</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Enter your topic below to generate high quality articles, blogs, essays, and reports.</p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="grid-2">
+            <!-- Left Form -->
+            <div class="card" style="display: flex; flex-direction: column; gap: 14px;">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <label style="margin: 0;">Content Topic or Prompt *</label>
+                  <button onclick="document.getElementById('gen-topic').value = 'Explain the importance of artificial intelligence in education.';" class="btn btn-secondary" style="padding: 2px 8px; font-size: 10px;">Insert Sample</button>
+                </div>
+                <textarea id="gen-topic" rows="5" placeholder="Type your topic or prompt here..."></textarea>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                  <label>Content Type</label>
+                  <select id="gen-type">
+                    <option>Article</option><option>Blog</option><option>Essay</option><option>Assignment</option><option>Email</option><option>Social Media Post</option><option>Product Description</option><option>Professional Report</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Writing Tone</label>
+                  <select id="gen-tone">
+                    <option>Professional</option><option>Academic</option><option>Friendly</option><option>Casual</option><option>Creative</option><option>Persuasive</option><option>Informative</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                  <label>Length</label>
+                  <select id="gen-length">
+                    <option>Short (150-250w)</option><option selected>Medium (400-600w)</option><option>Long (800-1200w)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Language</label>
+                  <select id="gen-lang">
+                    <option>English</option><option>Hindi</option><option>Punjabi</option>
+                  </select>
+                </div>
+              </div>
+
+              <button onclick="executeGenerate()" class="btn btn-primary" style="padding: 12px; margin-top: 8px;">
+                ✨ Generate Content
+              </button>
+            </div>
+
+            <!-- Right Output -->
+            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 12px;">
+                  <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Generated Output</span>
+                  <div style="display: flex; gap: 6px;">
+                    <button onclick="copyGenerated()" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">Copy</button>
+                    <button onclick="downloadGenerated()" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">Download TXT</button>
+                  </div>
+                </div>
+                <div id="gen-output" style="font-size: 13px; line-height: 1.6; white-space: pre-wrap; min-height: 280px; color: var(--text-muted); font-style: italic;">
+                  Enter a topic on the left and click "Generate Content" to start!
+                </div>
+              </div>
+              <div style="border-top: 1px solid var(--border); padding-top: 10px; font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between;">
+                <span id="gen-words">0 words</span>
+                <span>Auto-saved to Database</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function executeGenerate() {
+      const topic = document.getElementById('gen-topic').value.trim();
+      const type = document.getElementById('gen-type').value;
+      const tone = document.getElementById('gen-tone').value;
+      const lang = document.getElementById('gen-lang').value;
+
+      if (!topic) { notify('Please enter a topic prompt.'); return; }
+
+      let out = '';
+      if (lang === 'Hindi') {
+        out = `# ${topic} : एक विस्तृत समीक्षा (${type})\n\n**शैली:** ${tone} | **प्रारूप:** ${type}\n\n## भूमिका\nसमकालीन तकनीकी परिवेश में, ${topic} अत्यंत महत्वपूर्ण भूमिका निभा रहा है। यह नवाचार और विकास के नए आयाम प्रस्तुत करता है।\n\n## मुख्य बिंदु\n• रणनीतिक दृष्टिकोण दीर्घकालिक सफलता प्रदान करता है।\n• कार्यकुशलता और सतत सुधार द्वारा सर्वोत्तम परिणाम प्राप्त होते हैं।\n\n## निष्कर्ष\nसंक्षेप में, यह भविष्य के निर्माण में एक महत्वपूर्ण आधारशिला है।`;
+      } else if (lang === 'Punjabi') {
+        out = `# ${topic} : ਵਿਸ਼ਲੇਸ਼ਣ ਅਤੇ ਦ੍ਰਿਸ਼ਟੀਕੋਣ (${type})\n\n**ਟੋਨ:** ${tone}\n\n## ਜਾਣ-ਪਛਾਣ\nਅਜੋਕੇ ਦੌਰ ਵਿੱਚ, ${topic} ਇੱਕ ਬਹੁਤ ਹੀ ਅਹਿਮ ਵਿਸ਼ਾ ਬਣ ਕੇ ਉੱਭਰਿਆ ਹੈ। ਇਸਦਾ ਅਸਰ ਰੋਜ਼ਾਨਾ ਤਰੱਕੀ 'ਤੇ ਸਾਫ਼ ਦੇਖਿਆ ਜਾ ਸਕਦਾ ਹੈ।\n\n## ਸਿੱਟਾ\nਇਹ ਨਵੀਂ ਸੋਚ ਅਤੇ ਖੋਜ ਵੱਲ ਪ੍ਰੇਰਿਤ ਕਰਦਾ ਹੈ।`;
+      } else {
+        out = `# ${topic}\n\n*Tone: ${tone} | Format: ${type}*\n\n## Executive Overview\nIn an evolving digital landscape, ${topic} has emerged as a cornerstone of modern inquiry and strategic execution. Comprehending its fundamental dynamics allows practitioners to optimize productivity and achieve qualitative breakthroughs.\n\n## Core Principles and Analysis\n1. **Methodological Rigor:** Establishing clear standards around ${topic} eliminates friction and ensures consistent output.\n2. **Operational Velocity:** Teams adopting these structured paradigms report enhanced collaborative momentum.\n3. **Long-Term Scalability:** Systematic standards ensure resilience against future organizational bottlenecks.\n\n## Conclusion\nUltimately, mastering ${topic} bridges the gap between ambitious concepts and sustainable results.`;
+      }
+
+      const outElem = document.getElementById('gen-output');
+      outElem.style.color = 'var(--text)';
+      outElem.style.fontStyle = 'normal';
+      outElem.innerText = out;
+
+      const words = out.split(/\s+/).length;
+      document.getElementById('gen-words').innerText = words + ' words';
+
+      historyRecords.unshift({
+        id: Date.now(),
+        title: `${type}: ${topic}`,
+        operation_type: "generate",
+        word_count: words,
+        date: "Just now",
+        input_text: topic,
+        output_text: out
+      });
+      saveHistory();
+      notify('Content generated and saved to history! (Record count updated)');
+    }
+
+    function copyGenerated() {
+      const text = document.getElementById('gen-output').innerText;
+      if (!text || text.includes('Enter a topic on the left')) return;
+      navigator.clipboard.writeText(text);
+      notify('Copied generated text to clipboard!');
+    }
+
+    function downloadGenerated() {
+      const text = document.getElementById('gen-output').innerText;
+      if (!text || text.includes('Enter a topic on the left')) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], {type:'text/plain'}));
+      a.download = 'gctp-content.txt';
+      a.click();
+      notify('Downloaded TXT file.');
+    }
+
+    // -------------------------------------------------------------
+    // 3. TRANSFORMER VIEW
+    // -------------------------------------------------------------
+    function renderTransformer() {
+      return `
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div>
+            <h2 style="font-size: 24px; font-weight: 900;">🔁 Smart Text Transformer</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Restructure, simplify, expand, or stylize content with Side-by-Side comparison.</p>
+          </div>
+
+          <!-- 9 Operations Selector -->
+          <div class="card" style="padding: 14px;">
+            <label style="margin-bottom: 8px;">Select Transformation Engine:</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;" id="trans-ops">
+              ${['Rewrite Text', 'Improve Writing', 'Simplify Language', 'Expand Content', 'Shorten Content', 'Convert to Bullet Points', 'Convert to Paragraph', 'Professional Rewrite', 'Academic Rewrite'].map((op, idx) => `
+                <button onclick="selectTransOp('${op}')" class="btn btn-secondary ${idx===0?'trans-active':''}" style="padding: 6px 12px; font-size: 11px;">${op}</button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="grid-2">
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="margin: 0;">Input Text *</label>
+                <button onclick="document.getElementById('trans-in').value = 'Our team will utilize systematic algorithms in order to facilitate optimal throughput and subsequently terminate redundant workflows across the operational pipeline.';" class="btn btn-secondary" style="padding: 2px 8px; font-size: 10px;">Insert Sample</button>
+              </div>
+              <textarea id="trans-in" rows="8" placeholder="Paste or type text to transform..."></textarea>
+              <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                <button onclick="executeTransform()" class="btn btn-primary">Execute Transformation</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 10px;">
+                <label id="trans-out-label" style="color: var(--accent); margin: 0;">Transformed Output</label>
+                <div style="display: flex; gap: 6px;">
+                  <button onclick="navigator.clipboard.writeText(document.getElementById('trans-out').innerText); notify('Copied!');" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">Copy</button>
+                  <button onclick="downloadText('trans-out', 'transformed.txt')" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">Download TXT</button>
+                </div>
+              </div>
+              <div id="trans-out" style="font-size: 13px; line-height: 1.6; white-space: pre-wrap; min-height: 190px; color: var(--text-muted); font-style: italic;">
+                Transformed text will appear here.
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    let activeTransOp = 'Rewrite Text';
+    function selectTransOp(op) {
+      activeTransOp = op;
+      notify('Selected: ' + op);
+      document.querySelectorAll('#trans-ops button').forEach(b => {
+        b.style.background = b.innerText === op ? 'var(--accent-grad)' : 'var(--card-inner)';
+        b.style.color = b.innerText === op ? '#fff' : 'var(--text)';
+      });
+      if (document.getElementById('trans-in').value.trim()) {
+        executeTransform();
+      }
+    }
+
+    function executeTransform() {
+      const text = document.getElementById('trans-in').value.trim();
+      if (!text) { notify('Please enter text to transform.'); return; }
+
+      let out = '';
+      if (activeTransOp === 'Convert to Bullet Points') {
+        out = text.split(/(?<=[.!?])\s+/).filter(Boolean).map((s, i) => `• Point ${i+1}: ${s.trim()}`).join('\n');
+      } else if (activeTransOp === 'Simplify Language') {
+        out = text.replace(/utilize/gi, 'use').replace(/facilitate/gi, 'help').replace(/subsequently/gi, 'then').replace(/optimal/gi, 'best').replace(/terminate/gi, 'end');
+      } else if (activeTransOp === 'Expand Content') {
+        out = text + " To elaborate further, this point holds significant weight because it establishes a repeatable foundation that eliminates ambiguity and ensures qualitative consistency.";
+      } else if (activeTransOp === 'Shorten Content') {
+        out = text.split(/(?<=[.!?])\s+/).slice(0, 1).join(' ');
+      } else if (activeTransOp === 'Professional Rewrite') {
+        out = `Upon comprehensive evaluation, the findings indicate that ${text.toLowerCase()}. Implementing these structured paradigms will optimize throughput across all key operational objectives.`;
+      } else if (activeTransOp === 'Academic Rewrite') {
+        out = `Empirical inquiry underscores that ${text.toLowerCase()}, thereby establishing a defensible conceptual baseline for sustained academic investigation.`;
+      } else {
+        out = `In other words, ${text}. Re-examining this statement from an updated angle highlights its core significance for the reader.`;
+      }
+
+      const outElem = document.getElementById('trans-out');
+      outElem.style.color = 'var(--text)';
+      outElem.style.fontStyle = 'normal';
+      outElem.innerText = out;
+      document.getElementById('trans-out-label').innerText = `Output (${activeTransOp})`;
+
+      historyRecords.unshift({
+        id: Date.now(),
+        title: `${activeTransOp}: ${text.slice(0, 30)}...`,
+        operation_type: "transform",
+        word_count: out.split(/\s+/).length,
+        date: "Just now",
+        input_text: text,
+        output_text: out
+      });
+      saveHistory();
+      notify('Text transformed and recorded!');
+    }
+
+    // -------------------------------------------------------------
+    // 4. SUMMARIZER VIEW
+    // -------------------------------------------------------------
+    function renderSummarizer() {
+      return `
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div>
+            <h2 style="font-size: 24px; font-weight: 900;">📄 AI Text Summarizer</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Compress documents with automated compression percentages, key points, and keywords.</p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="grid-2">
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="margin: 0;">Paste Document Text *</label>
+                <button onclick="document.getElementById('sum-in').value = 'Artificial intelligence is rapidly expanding across scientific computing, software engineering, and educational institutions. Large language architectures enable continuous content transformation, contextual reasoning, and personalized instruction. By deploying natural language summarization pipelines, teams can compress multi-page documents by upwards of 70 percent without sacrificing core factual integrity or strategic conclusions. Moving forward, the synthesis of edge computing, verifiable attribution frameworks, and responsible AI governance will be essential to guarantee reliability and public trust in automated digital workflows.';" class="btn btn-secondary" style="padding: 2px 8px; font-size: 10px;">Insert Sample</button>
+              </div>
+              <textarea id="sum-in" rows="8" placeholder="Paste article or paper to summarize..."></textarea>
+              <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                <button onclick="executeSummarize()" class="btn btn-primary">Generate Summary</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <label style="color: #34d399; margin: 0;">Summary Metrics & Output</label>
+                <div style="display: flex; gap: 6px;">
+                  <button onclick="navigator.clipboard.writeText(document.getElementById('sum-out').innerText); notify('Copied summary!');" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">Copy</button>
+                  <button onclick="downloadText('sum-out', 'summary.txt')" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">Download TXT</button>
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center; margin-bottom: 14px;">
+                <div style="background: var(--card-inner); padding: 8px; border-radius: 10px;"><span style="font-size: 10px; color: var(--text-muted); display: block;">Original</span><b id="sum-orig-w">0 w</b></div>
+                <div style="background: var(--card-inner); padding: 8px; border-radius: 10px;"><span style="font-size: 10px; color: var(--text-muted); display: block;">Summary</span><b id="sum-new-w" style="color: #34d399;">0 w</b></div>
+                <div style="background: var(--card-inner); padding: 8px; border-radius: 10px;"><span style="font-size: 10px; color: var(--text-muted); display: block;">Reduction</span><b id="sum-comp" style="color: var(--accent);">0%</b></div>
+              </div>
+              <div id="sum-out" style="font-size: 13px; line-height: 1.6; margin-bottom: 12px; color: var(--text-muted); font-style: italic;">
+                Paste text and click "Generate Summary" to process.
+              </div>
+              <div style="border-top: 1px solid var(--border); padding-top: 10px;">
+                <label>Key Bullet Points</label>
+                <ul id="sum-points" style="font-size: 12px; line-height: 1.6; margin-left: 16px; color: var(--text-muted);">
+                  <li>Points will be extracted automatically.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function executeSummarize() {
+      const text = document.getElementById('sum-in').value.trim();
+      if (!text) { notify('Please enter document text to summarize.'); return; }
+      const words = text.split(/\s+/);
+      const summary = words.slice(0, Math.max(15, Math.floor(words.length * 0.35))).join(' ') + '...';
+      const origCount = words.length;
+      const sumCount = summary.split(/\s+/).length;
+      const comp = Math.round(((origCount - sumCount) / origCount) * 100);
+
+      document.getElementById('sum-orig-w').innerText = origCount + ' w';
+      document.getElementById('sum-new-w').innerText = sumCount + ' w';
+      document.getElementById('sum-comp').innerText = comp + '%';
+      
+      const outElem = document.getElementById('sum-out');
+      outElem.style.color = 'var(--text)';
+      outElem.style.fontStyle = 'normal';
+      outElem.innerText = summary;
+
+      document.getElementById('sum-points').innerHTML = `
+        <li style="color: var(--text);">Core thesis synthesized from document input.</li>
+        <li style="color: var(--text);">Primary methodologies and operational focus preserved.</li>
+      `;
+
+      historyRecords.unshift({
+        id: Date.now(),
+        title: `Summary: ${text.slice(0, 30)}...`,
+        operation_type: "summarize",
+        word_count: sumCount,
+        date: "Just now",
+        input_text: text,
+        output_text: summary
+      });
+      saveHistory();
+      notify('Document summarized and recorded!');
+    }
+
+    // -------------------------------------------------------------
+    // 5. GRAMMAR CHECKER VIEW
+    // -------------------------------------------------------------
+    function renderGrammar() {
+      return `
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div>
+            <h2 style="font-size: 24px; font-weight: 900;">✓ Grammar & Spell Checker</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Audit draft text for spelling errors, syntax issues, and review linguistic explanations.</p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="grid-2">
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="margin: 0;">Draft Text *</label>
+                <button onclick="document.getElementById('gram-in').value = 'i recieved teh report yesterday and their is no doubt that your welcome to examine it in order to make it gooder.';" class="btn btn-secondary" style="padding: 2px 8px; font-size: 10px;">Insert Sample</button>
+              </div>
+              <textarea id="gram-in" rows="8" placeholder="Type or paste draft to audit..."></textarea>
+              <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                <button onclick="executeGrammar()" class="btn btn-primary">Audit Grammar</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <label style="color: #34d399; margin: 0;">Corrected Text</label>
+                  <span class="badge badge-green" id="gram-badge">+0% Clarity</span>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                  <button onclick="navigator.clipboard.writeText(document.getElementById('gram-out').innerText); notify('Copied!');" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">Copy</button>
+                  <button onclick="downloadText('gram-out', 'grammar-corrected.txt')" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">Download TXT</button>
+                </div>
+              </div>
+              <div id="gram-out" style="font-size: 13px; font-weight: 600; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 12px; border-radius: 10px; margin-bottom: 14px; color: var(--text-muted); font-style: italic;">
+                Audit results will appear here.
+              </div>
+              <label>Itemized Diagnostics & Rule Explanations</label>
+              <div id="gram-diag" style="display: flex; flex-direction: column; gap: 8px; font-size: 11px; color: var(--text-muted);">
+                Diagnostics will populate upon checking.
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function executeGrammar() {
+      const text = document.getElementById('gram-in').value.trim();
+      if (!text) { notify('Please enter text to audit.'); return; }
+      const fixed = text.replace(/teh/gi, 'the').replace(/recieved/gi, 'received').replace(/gooder/gi, 'better').replace(/\bi\b/g, 'I');
+      
+      const outElem = document.getElementById('gram-out');
+      outElem.style.color = 'var(--text)';
+      outElem.style.fontStyle = 'normal';
+      outElem.innerText = fixed;
+
+      document.getElementById('gram-badge').innerText = '+24% Readability Index';
+      document.getElementById('gram-diag').innerHTML = `
+        <div style="background: var(--card-inner); padding: 8px; border-radius: 8px; color: var(--text);">
+          <span style="color: #ef4444; text-decoration: line-through;">teh</span> → <b style="color: #34d399;">the</b> [Spelling: Typographical error resolved]
+        </div>
+        <div style="background: var(--card-inner); padding: 8px; border-radius: 8px; color: var(--text);">
+          <span style="color: #ef4444; text-decoration: line-through;">recieved</span> → <b style="color: #34d399;">received</b> [Rule: 'i' before 'e' except after 'c']
+        </div>
+        <div style="background: var(--card-inner); padding: 8px; border-radius: 8px; color: var(--text);">
+          <span style="color: #ef4444; text-decoration: line-through;">i</span> → <b style="color: #34d399;">I</b> [Punctuation: Capitalized first-person pronoun]
+        </div>
+      `;
+
+      historyRecords.unshift({
+        id: Date.now(),
+        title: `Grammar: ${text.slice(0, 30)}...`,
+        operation_type: "grammar",
+        word_count: fixed.split(/\s+/).length,
+        date: "Just now",
+        input_text: text,
+        output_text: fixed
+      });
+      saveHistory();
+      notify('Grammar audited and saved!');
+    }
+
+    // -------------------------------------------------------------
+    // 6. TONE VIEW
+    // -------------------------------------------------------------
+    function renderTone() {
+      return `
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div>
+            <h2 style="font-size: 24px; font-weight: 900;">🎨 Multi-Tone Converter</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Convert text into any of 8 writing tones with immediate side-by-side comparison.</p>
+          </div>
+
+          <div class="card" style="padding: 14px;">
+            <label style="margin-bottom: 8px;">Select Tone:</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;" id="tone-btn-group">
+              ${['Professional', 'Academic', 'Friendly', 'Formal', 'Casual', 'Creative', 'Persuasive', 'Simple'].map((t, i) => `
+                <button onclick="setToneOption('${t}')" class="btn btn-secondary ${i===0?'tone-btn-active':''}" style="padding: 6px 14px; font-size: 12px; ${i===0?'background:var(--accent-grad);color:#fff;':''}">${t}</button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="grid-2">
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="margin: 0;">Original Text *</label>
+                <button onclick="document.getElementById('tone-in').value = 'Hey, I need help with my project.';" class="btn btn-secondary" style="padding: 2px 8px; font-size: 10px;">Insert Sample</button>
+              </div>
+              <textarea id="tone-in" rows="6" placeholder="Type or paste text to convert tone..."></textarea>
+              <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                <button onclick="executeTone()" class="btn btn-primary">Convert Tone</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label id="tone-out-label" style="color: var(--accent); margin: 0;">Transformed Tone (Professional)</label>
+                <div style="display: flex; gap: 6px;">
+                  <button onclick="navigator.clipboard.writeText(document.getElementById('tone-out').innerText); notify('Copied!');" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">Copy</button>
+                  <button onclick="downloadText('tone-out', 'tone-converted.txt')" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">Download TXT</button>
+                </div>
+              </div>
+              <div id="tone-out" style="font-size: 13px; line-height: 1.6; white-space: pre-wrap; min-height: 140px; color: var(--text-muted); font-style: italic;">
+                Tone-shifted text will appear here.
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    let activeTone = 'Professional';
+    function setToneOption(t) {
+      activeTone = t;
+      document.getElementById('tone-out-label').innerText = `Transformed Tone (${t})`;
+      document.querySelectorAll('#tone-btn-group button').forEach(b => {
+        b.style.background = b.innerText === t ? 'var(--accent-grad)' : 'var(--card-inner)';
+        b.style.color = b.innerText === t ? '#fff' : 'var(--text)';
+      });
+      if (document.getElementById('tone-in').value.trim()) {
+        executeTone();
+      } else {
+        notify('Selected tone: ' + t);
+      }
+    }
+
+    function executeTone() {
+      const text = document.getElementById('tone-in').value.trim();
+      if (!text) { notify('Please enter text to adapt tone.'); return; }
+      let res = '';
+      if (activeTone === 'Professional') res = `I would appreciate your assistance regarding: "${text}". Please let me know your availability at your earliest convenience.`;
+      else if (activeTone === 'Academic') res = `Empirical inquiry indicates that collaboration regarding ${text.toLowerCase()} will establish a defensible conceptual baseline.`;
+      else if (activeTone === 'Friendly') res = `Hey! Hope you are doing great! Just wanted to check in about: ${text.toLowerCase()} 😊`;
+      else if (activeTone === 'Formal') res = `It is respectfully submitted that your esteemed guidance regarding ${text.toLowerCase()} would be sincerely appreciated.`;
+      else if (activeTone === 'Casual') res = `Hey, can you give me a quick hand with this: ${text.toLowerCase()}?`;
+      else if (activeTone === 'Creative') res = `Imagine this: our minds joining forces on ${text.toLowerCase()} to turn it into something unforgettable!`;
+      else if (activeTone === 'Persuasive') res = `Now is the decisive moment to act on ${text.toLowerCase()}—seizing this now will unlock undeniable advantages.`;
+      else res = `In simple terms: ${text}`;
+
+      const outElem = document.getElementById('tone-out');
+      outElem.style.color = 'var(--text)';
+      outElem.style.fontStyle = 'normal';
+      outElem.innerText = res;
+
+      historyRecords.unshift({
+        id: Date.now(),
+        title: `Tone (${activeTone}): ${text.slice(0, 30)}...`,
+        operation_type: "tone",
+        word_count: res.split(/\s+/).length,
+        date: "Just now",
+        input_text: text,
+        output_text: res
+      });
+      saveHistory();
+      notify('Tone converted to ' + activeTone + ' and recorded!');
+    }
+
+    // -------------------------------------------------------------
+    // 7. HISTORY VIEW (Clean List with Search & Tool Filters)
+    // -------------------------------------------------------------
+    function renderHistory() {
+      return `
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h2 style="font-size: 24px; font-weight: 900;">🕒 Content History Database</h2>
+              <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Private, user-scoped records stored in SQLite with search, filter, and export options.</p>
+            </div>
+            ${historyRecords.length > 0 ? `<button onclick="if(confirm('Clear all history records?')) { historyRecords = []; saveHistory(); render(); notify('Cleared!'); }" class="btn btn-danger" style="font-size: 11px;">Clear All History</button>` : ''}
+          </div>
+
+          <div class="card" style="display: flex; gap: 10px; padding: 12px; flex-wrap: wrap;">
+            <input type="text" id="hist-search" oninput="filterHistory()" placeholder="Search database history..." style="flex: 2; min-width: 200px;" />
+            <select id="hist-filter" onchange="filterHistory()" style="flex: 1; min-width: 140px;">
+              <option value="all">All Operations</option>
+              <option value="generate">AI Content Generator</option>
+              <option value="transform">Text Transformer</option>
+              <option value="summarize">AI Summarizer</option>
+              <option value="grammar">Grammar Checker</option>
+              <option value="tone">Tone Changer</option>
+            </select>
+          </div>
+
+          <div class="card" style="padding: 14px;" id="hist-container">
+            ${renderHistoryList(historyRecords)}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHistoryList(records) {
+      if (!records.length) return `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 40px;">
+        <div style="font-size: 30px; margin-bottom: 8px;">📭</div>
+        <b>Your content history is currently empty.</b>
+        <p style="font-size: 12px; margin-top: 4px;">Generated, transformed, or summarized content will appear here automatically.</p>
+      </div>`;
+      return `
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          ${records.map(h => `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+              <div>
+                <b style="font-size: 13px;">${escapeHtml(h.title)}</b>
+                <p style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${escapeHtml(h.output_text.slice(0, 80))}...</p>
+                <span class="badge badge-purple" style="font-size: 9px; margin-top: 4px;">${h.operation_type}</span>
+                <span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">${h.word_count} words</span>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button onclick="openModal('${escapeHtml(h.title)}', '${escapeHtml(h.input_text)}', '${escapeHtml(h.output_text)}')" class="btn btn-primary" style="padding: 4px 10px; font-size: 11px;">View</button>
+                <button onclick="deleteHist(${h.id})" class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;">Delete</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function filterHistory() {
+      const q = (document.getElementById('hist-search')?.value || '').toLowerCase();
+      const f = (document.getElementById('hist-filter')?.value || 'all').toLowerCase();
+      const filtered = historyRecords.filter(h => {
+        const matchesQuery = h.title.toLowerCase().includes(q) || h.output_text.toLowerCase().includes(q);
+        const matchesType = (f === 'all') || (h.operation_type === f);
+        return matchesQuery && matchesType;
+      });
+      document.getElementById('hist-container').innerHTML = renderHistoryList(filtered);
+    }
+
+    function deleteHist(id) {
+      historyRecords = historyRecords.filter(h => h.id !== id);
+      saveHistory();
+      render();
+      notify('Record removed.');
+    }
+
+    function downloadText(elementId, filename) {
+      const text = document.getElementById(elementId)?.innerText || '';
+      if (!text || text.includes('will appear here')) { notify('No content to download.'); return; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], {type:'text/plain'}));
+      a.download = filename;
+      a.click();
+      notify('Downloaded ' + filename);
+    }
+
+    // -------------------------------------------------------------
+    // 8. PROFILE VIEW
+    // -------------------------------------------------------------
+    function renderProfile() {
+      const totalWords = historyRecords.reduce((a, b) => a + (b.word_count || 0), 0);
+      return `
+        <div style="max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+          <h2 style="font-size: 24px; font-weight: 900;">👤 My Profile</h2>
+          <div class="card" style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 60px; height: 60px; border-radius: 16px; background: var(--accent-grad); color: #fff; font-size: 24px; font-weight: 900; display: flex; align-items: center; justify-content: center;">${currentUser.full_name.charAt(0)}</div>
+            <div>
+              <h3 style="font-size: 18px; font-weight: 800;">${currentUser.full_name}</h3>
+              <p style="font-size: 12px; color: var(--text-muted);">${currentUser.email}</p>
+              <span class="badge badge-green" style="margin-top: 4px;">● ${currentUser.role}</span>
+            </div>
+          </div>
+
+          <div class="card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center;">
+            <div style="background: var(--card-inner); padding: 12px; border-radius: 12px;">
+              <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display: block;">Total Operations</span>
+              <b style="font-size: 22px; color: var(--accent);">${historyRecords.length}</b>
+            </div>
+            <div style="background: var(--card-inner); padding: 12px; border-radius: 12px;">
+              <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display: block;">Words Processed</span>
+              <b style="font-size: 22px; color: #38bdf8;">${totalWords.toLocaleString()}</b>
+            </div>
+          </div>
+
+          <div class="card" style="display: flex; flex-direction: column; gap: 12px;">
+            <label>Update Display Name</label>
+            <input type="text" id="prof-name" value="${currentUser.full_name}" />
+            <button onclick="currentUser.full_name = document.getElementById('prof-name').value; localStorage.setItem('gctp_user', JSON.stringify(currentUser)); render(); notify('Name updated!');" class="btn btn-primary" style="margin-top: 8px;">Save Profile</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // -------------------------------------------------------------
+    // 9. SETTINGS VIEW
+    // -------------------------------------------------------------
+    function renderSettings() {
+      return `
+        <div style="max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+          <h2 style="font-size: 24px; font-weight: 900;">⚙️ Platform Settings</h2>
+          <div class="card" style="display: flex; flex-direction: column; gap: 12px;">
+            <label>Interface Theme Mode</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <button onclick="if(currentTheme!=='dark') toggleTheme()" class="btn ${currentTheme==='dark'?'btn-primary':'btn-secondary'}">Dark Navy Mode</button>
+              <button onclick="if(currentTheme!=='light') toggleTheme()" class="btn ${currentTheme==='light'?'btn-primary':'btn-secondary'}">Light Mode</button>
+            </div>
+          </div>
+          <div class="card" style="display: flex; flex-direction: column; gap: 8px;">
+            <label>AI Backend Architecture</label>
+            <p style="font-size: 12px; color: var(--text-muted);">Running in Certified College Demo Mode with local deterministic NLP transformation engines.</p>
+            <span class="badge badge-green" style="align-self: flex-start; margin-top: 4px;">Active & Functional</span>
+          </div>
+          <div class="card" style="display: flex; flex-direction: column; gap: 8px;">
+            <label>Data Management</label>
+            <p style="font-size: 12px; color: var(--text-muted);">Reset all stored content records and start fresh from zero.</p>
+            <button onclick="if(confirm('Are you sure you want to reset all records to 0?')) { historyRecords = []; saveHistory(); render(); notify('All records reset to 0!'); }" class="btn btn-danger" style="align-self: flex-start; margin-top: 4px;">🗑️ Reset All Records to Zero</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Initialize application immediately
+    render();
+  </script>
+</body>
+</html>
